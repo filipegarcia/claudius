@@ -4,7 +4,13 @@
 # root crates by path. CI: .github/workflows/rust-app.yml (macOS, Metal).
 [workspace]
 resolver = "3"
-members = ["crates/claudius-app", "crates/claudius-chat", "crates/claudius-composer", "crates/claudius-gpui-theme"]
+members = [
+    "crates/claudius-app",
+    "crates/claudius-chat",
+    "crates/claudius-composer",
+    "crates/claudius-gpui-theme",
+    "crates/claudius-prompts",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -30,6 +36,8 @@ claudius-server = { path = "../crates/claudius-server" }
 claudius-transport = { path = "../crates/claudius-transport" }
 tokio = { version = "1", features = ["full"] }
 claudius-gpui-theme = { path = "crates/claudius-gpui-theme" }
+# The prompt cards (U08): permission, plan, elicitation, AskUserQuestion.
+claudius-prompts = { path = "crates/claudius-prompts" }
 
 # GPUI Kit publishes gpui-component and pins the gpui-pre (Zed snapshot)
 # crates it was built against. Pinned exactly, as the U00a spike verified it

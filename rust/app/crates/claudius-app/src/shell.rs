@@ -26,11 +26,12 @@ use claudius_chat::{TranscriptSource, TranscriptView};
 use claudius_client::effect::Effect as ChatEffect;
 use claudius_composer::{ComposerTarget, ComposerView};
 use claudius_gpui_theme::ThemeName;
+use claudius_prompts::{ChatPrompts, PromptSource};
 use futures::StreamExt as _;
 use gpui_kit::{
     App, AppContext as _, Context, Entity, FocusHandle, Image, ImageFormat,
-    InteractiveElement as _, IntoElement, ParentElement as _, Render, Styled as _, Task, Window,
-    WindowAppearance, WindowVisibility, div,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, Styled as _,
+    Task, Window, WindowAppearance, WindowVisibility, div,
 };
 
 use crate::chat::{ChatPage, ChatSync, LiveChat, bound_tab_state};
@@ -157,6 +158,9 @@ pub struct Shell {
     /// bound to whichever tab is shown.
     composer_target: Option<Arc<dyn ComposerTarget>>,
     composer: Option<Entity<ComposerView>>,
+    /// The chats' prompt cards (U08a), when a source is set.
+    prompt_source: Option<Arc<dyn PromptSource>>,
+    prompts: Vec<(String, ChatPrompts)>,
     pub(crate) focus: FocusHandle,
     pub(crate) appearance: Appearance,
     pub(crate) theme: ThemeName,
@@ -289,6 +293,8 @@ impl Shell {
             chat_views: Vec::new(),
             composer_target: None,
             composer: None,
+            prompt_source: None,
+            prompts: Vec::new(),
             focus,
             appearance,
             theme,
@@ -342,6 +348,52 @@ impl Shell {
             .iter()
             .find(|(id, _)| id == tab_id)
             .map(|(_, v)| v.clone())
+    }
+
+    /// Shows each chat's prompt cards from `source` (U04b's live chats).
+    pub fn set_prompt_source(&mut self, source: Arc<dyn PromptSource>, cx: &mut Context<Self>) {
+        self.prompt_source = Some(source);
+        self.prompts.clear();
+        cx.notify();
+    }
+
+    /// The prompt cards of a tab, when it was shown recently.
+    pub fn chat_prompts(&self, tab_id: &str) -> Option<ChatPrompts> {
+        self.prompts
+            .iter()
+            .find(|(id, _)| id == tab_id)
+            .map(|(_, p)| p.clone())
+    }
+
+    /// Makes the bound tab's prompt cards (and keeps the recent ones).
+    fn sync_chat_prompts(&mut self, cx: &mut Context<Self>) {
+        let (Some(tab), Some(source)) = (self.chat_tab(), self.prompt_source.clone()) else {
+            return;
+        };
+        let theme = self.theme;
+        if let Some(i) = self.prompts.iter().position(|(id, _)| *id == tab) {
+            let entry = self.prompts.remove(i);
+            entry.1.set_theme(theme, cx);
+            self.prompts.push(entry);
+            return;
+        }
+        let Some(target) = source.target(&tab) else {
+            return;
+        };
+        self.prompts
+            .push((tab, ChatPrompts::new(target, theme, cx)));
+        if self.prompts.len() > KEPT_CHAT_VIEWS {
+            self.prompts.remove(0);
+        }
+    }
+
+    /// A key the window saw: the shown chat's prompt cards answer Escape
+    /// (and the resurrected ask its shortcuts), as their `window` listeners.
+    fn prompt_key(&mut self, e: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        let prompts = self.chat_tab().and_then(|t| self.chat_prompts(&t));
+        if prompts.is_some_and(|p| p.key_down(e, window, cx)) {
+            cx.stop_propagation();
+        }
     }
 
     /// Makes the bound tab's transcript view (and keeps the recent ones).
@@ -1020,7 +1072,11 @@ impl Render for Shell {
         self.refit();
         self.sync_chat_view(cx);
         self.sync_composer(window, cx);
-        let root = div().track_focus(&self.focus).size_full();
+        self.sync_chat_prompts(cx);
+        let root = div()
+            .track_focus(&self.focus)
+            .size_full()
+            .on_key_down(cx.listener(Self::prompt_key));
         on_actions(root, cx).child(crate::ui::shell(self, window, cx))
     }
 }

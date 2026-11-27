@@ -15,6 +15,9 @@
 //! are claudius-chat's bundled ones (`FixtureTranscripts::builtin`), and
 //! the composer sends into them through `FixtureComposer` (a scripted
 //! reply); over a live chat the composer waits for U07e.
+//! `CLAUDIUS_APP_PROMPTS` puts sample prompt cards on the fixture's demo
+//! session (comma-separated: `permission`, `permission-queue`, `plan`,
+//! `plan-mode`, `elicitation`, `elicitation-url`, `ask`).
 //!
 //! Focus mode and the per-workspace route memory persist in
 //! `~/.claude/.claudius/native-app/local-storage.json` (`store.rs`).
@@ -31,9 +34,11 @@ use claudius_app::sessions::fixture::FixtureSessionsData;
 use claudius_app::shell::{Appearance, open_main_window};
 use claudius_app::store::{self, LocalStore};
 use claudius_chat::TranscriptSource;
-use claudius_chat::fixture::FixtureTranscripts;
+use claudius_chat::fixture::{FixtureTranscripts, ids};
 use claudius_composer::fixture::FixtureComposer;
 use claudius_gpui_theme::{ThemeName, icons::IconAssets};
+use claudius_prompts::target::samples;
+use claudius_prompts::{FixturePromptSource, PromptSource};
 
 fn main() -> anyhow::Result<()> {
     let mut backend: Option<Arc<Backend>> = None;
@@ -90,6 +95,21 @@ fn main() -> anyhow::Result<()> {
         .is_none()
         .then(|| FixtureComposer::builtin(fixture.clone(), Some(Duration::from_millis(120))));
     let transcripts: Arc<dyn TranscriptSource> = fixture;
+    // The prompt cards' chats over the fixture (a live chat's wait for
+    // U08c).
+    let prompts = if backend.is_none() {
+        let prompts = FixturePromptSource::new();
+        if let Ok(kinds) = std::env::var("CLAUDIUS_APP_PROMPTS") {
+            let unknown = samples::seed(&prompts.session(ids::DEMO), &kinds);
+            anyhow::ensure!(
+                unknown.is_empty(),
+                "CLAUDIUS_APP_PROMPTS: unknown {unknown:?}"
+            );
+        }
+        Some(prompts as Arc<dyn PromptSource>)
+    } else {
+        None
+    };
     let store = LocalStore::open(store::default_path());
     gpui_kit::application()
         .with_assets(IconAssets)
@@ -117,11 +137,14 @@ fn main() -> anyhow::Result<()> {
                 .detach();
             }
             match open_main_window(data, transcripts, sessions, appearance, store, cx) {
-                Ok(shell) => {
+                Ok(shell) => shell.update(cx, |s, cx| {
                     if let Some(composer) = composer {
-                        shell.update(cx, |s, cx| s.set_composer_target(composer, cx));
+                        s.set_composer_target(composer, cx);
                     }
-                }
+                    if let Some(prompts) = prompts {
+                        s.set_prompt_source(prompts, cx);
+                    }
+                }),
                 Err(e) => {
                     eprintln!("claudius-app: opening the window: {e:#}");
                     cx.quit();

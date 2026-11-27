@@ -196,18 +196,32 @@ fn chat(this: &Shell, c: &Colors, cx: &mut Context<Shell>) -> AnyElement {
     };
     // The bound session's transcript (U05): over the fixture always (a
     // session it doesn't hold shows the splash), over a live chat when the
-    // transcripts' source has it, over the composer (U07).
+    // transcripts' source has it, over the composer (U07). Its prompt
+    // cards (U08a): the plan-mode banner above, the live ask below the
+    // transcript (MessageList's last row), the modal cards over the pane.
     if !state.is_live_chat() || this.has_transcript(&tab.id) {
         let transcript = this.chat_view(&tab.id);
+        let prompts = this.chat_prompts(&tab.id);
         return div()
             .debug_selector(|| "chat-session".into())
+            .relative()
             .flex()
             .flex_col()
             .flex_1()
             .min_h_0()
             .size_full()
-            .child(div().flex_1().min_h_0().children(transcript))
+            .children(prompts.as_ref().map(|p| p.banner.clone()))
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .flex_1()
+                    .min_h_0()
+                    .children(transcript),
+            )
+            .children(prompts.as_ref().map(|p| p.inline.clone()))
             .children(this.composer())
+            .children(prompts.map(|p| p.overlays))
             .into_any_element();
     }
     let session = state.sessions(&ws.id).iter().find(|s| s.id == tab.id);

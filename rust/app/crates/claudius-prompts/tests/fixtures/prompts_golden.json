@@ -1,0 +1,5993 @@
+{
+ "visualize": [
+  {
+   "text": "",
+   "invisible": {
+    "visualized": "",
+    "count": 0
+   },
+   "hiddenName": {
+    "visualized": "",
+    "count": 0
+   },
+   "strip": {
+    "cleaned": "",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "plain ascii",
+   "invisible": {
+    "visualized": "plain ascii",
+    "count": 0
+   },
+   "hiddenName": {
+    "visualized": "plain ascii",
+    "count": 0
+   },
+   "strip": {
+    "cleaned": "plain ascii",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "a\u200bb\u2060c\ufeffd",
+   "invisible": {
+    "visualized": "a\u2039U+200B\u203ab\u2039U+2060\u203ac\u2039U+FEFF\u203ad",
+    "count": 3
+   },
+   "hiddenName": {
+    "visualized": "a\u2039U+200B\u203ab\u2039U+2060\u203ac\u2039U+FEFF\u203ad",
+    "count": 3
+   },
+   "strip": {
+    "cleaned": "abcd",
+    "removedCount": 3,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "bidi \u202a\u202b\u202c\u202d\u202e and \u2066\u2067\u2068\u2069",
+   "invisible": {
+    "visualized": "bidi \u2039U+202A\u203a\u2039U+202B\u203a\u2039U+202C\u203a\u2039U+202D\u203a\u2039U+202E\u203a and \u2039U+2066\u203a\u2039U+2067\u203a\u2039U+2068\u203a\u2039U+2069\u203a",
+    "count": 9
+   },
+   "hiddenName": {
+    "visualized": "bidi \u2039U+202A\u203a\u2039U+202B\u203a\u2039U+202C\u203a\u2039U+202D\u203a\u2039U+202E\u203a and \u2039U+2066\u203a\u2039U+2067\u203a\u2039U+2068\u203a\u2039U+2069\u203a",
+    "count": 9
+   },
+   "strip": {
+    "cleaned": "bidi  and ",
+    "removedCount": 9,
+    "bidiCount": 9
+   }
+  },
+  {
+   "text": "edges \u2029\u2065\u206a\u202f\udb40\udc00\udb40\udc01\udb40\udc1f\udb40\udc20\udb40\udc7f\udb40\udc80",
+   "invisible": {
+    "visualized": "edges \u2029\u2065\u206a\u202f\udb40\udc00\u2039U+E0001\u203a\udb40\udc1f\u2039U+E0020\u203a\u2039U+E007F\u203a\udb40\udc80",
+    "count": 3
+   },
+   "hiddenName": {
+    "visualized": "edges \u2039U+2029\u203a\u2039U+2065\u203a\u2039U+206A\u203a\u2039U+202F\u203a\u2039U+E0000\u203a\u2039U+E0001\u203a\u2039U+E001F\u203a\u2039U+E0020\u203a\u2039U+E007F\u203a\u2039U+E0080\u203a",
+    "count": 10
+   },
+   "strip": {
+    "cleaned": "edges \u2029\u2065\u206a\u202f\udb40\udc00\udb40\udc1f\udb40\udc80",
+    "removedCount": 3,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "joiners stay \u200c\u200d emoji \ud83d\udc69\u200d\ud83d\udcbb",
+   "invisible": {
+    "visualized": "joiners stay \u200c\u200d emoji \ud83d\udc69\u200d\ud83d\udcbb",
+    "count": 0
+   },
+   "hiddenName": {
+    "visualized": "joiners stay \u2039U+200C\u203a\u2039U+200D\u203a emoji \ud83d\udc69\u2039U+200D\u203a\ud83d\udcbb",
+    "count": 3
+   },
+   "strip": {
+    "cleaned": "joiners stay \u200c\u200d emoji \ud83d\udc69\u200d\ud83d\udcbb",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "names deploy\u3164 nbsp\u00a0 lrm\u200e soft\u00ad braille\u2800 obj\ufffc bamum\ud81a\udd10",
+   "invisible": {
+    "visualized": "names deploy\u3164 nbsp\u00a0 lrm\u200e soft\u00ad braille\u2800 obj\ufffc bamum\ud81a\udd10",
+    "count": 0
+   },
+   "hiddenName": {
+    "visualized": "names deploy\u2039U+3164\u203a nbsp\u2039U+00A0\u203a lrm\u2039U+200E\u203a soft\u2039U+00AD\u203a braille\u2039U+2800\u203a obj\u2039U+FFFC\u203a bamum\u2039U+16910\u203a",
+    "count": 7
+   },
+   "strip": {
+    "cleaned": "names deploy\u3164 nbsp\u00a0 lrm\u200e soft\u00ad braille\u2800 obj\ufffc bamum\ud81a\udd10",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "tags \udb40\udc67\udb40\udc62\udb40\udc73\udb40\udc63\udb40\udc74\udb40\udc7f",
+   "invisible": {
+    "visualized": "tags \u2039U+E0067\u203a\u2039U+E0062\u203a\u2039U+E0073\u203a\u2039U+E0063\u203a\u2039U+E0074\u203a\u2039U+E007F\u203a",
+    "count": 6
+   },
+   "hiddenName": {
+    "visualized": "tags \u2039U+E0067\u203a\u2039U+E0062\u203a\u2039U+E0073\u203a\u2039U+E0063\u203a\u2039U+E0074\u203a\u2039U+E007F\u203a",
+    "count": 6
+   },
+   "strip": {
+    "cleaned": "tags ",
+    "removedCount": 6,
+    "bidiCount": 0
+   }
+  },
+  {
+   "text": "space\u2003em\u3000ideo\u1680ogham",
+   "invisible": {
+    "visualized": "space\u2003em\u3000ideo\u1680ogham",
+    "count": 0
+   },
+   "hiddenName": {
+    "visualized": "space\u2039U+2003\u203aem\u2039U+3000\u203aideo\u2039U+1680\u203aogham",
+    "count": 3
+   },
+   "strip": {
+    "cleaned": "space\u2003em\u3000ideo\u1680ogham",
+    "removedCount": 0,
+    "bidiCount": 0
+   }
+  }
+ ],
+ "schema": [
+  {
+   "name": "primitives",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string",
+      "title": "Title",
+      "description": "Short",
+      "minLength": 3,
+      "maxLength": 8,
+      "default": ""
+     },
+     "email": {
+      "type": "string",
+      "format": "email"
+     },
+     "when": {
+      "type": "string",
+      "format": "date-time",
+      "default": "2026-01-01T00:00:00Z"
+     },
+     "count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 13,
+      "default": 3
+     },
+     "ratio": {
+      "type": "number",
+      "minimum": -1.5,
+      "maximum": 1e+21,
+      "default": 0.1
+     },
+     "big": {
+      "type": "number",
+      "default": 1e+21
+     },
+     "negz": {
+      "type": "number",
+      "default": 0
+     },
+     "notify": {
+      "type": "boolean",
+      "default": true
+     },
+     "off": {
+      "type": "boolean",
+      "default": "yes"
+     }
+    },
+    "required": [
+     "title",
+     "count",
+     7,
+     null
+    ]
+   },
+   "fields": [
+    {
+     "key": "title",
+     "label": "Title",
+     "description": "Short",
+     "required": true,
+     "kind": "string",
+     "minLength": 3,
+     "maxLength": 8,
+     "default": ""
+    },
+    {
+     "key": "email",
+     "label": "email",
+     "required": false,
+     "kind": "string",
+     "format": "email"
+    },
+    {
+     "key": "when",
+     "label": "when",
+     "required": false,
+     "kind": "string",
+     "format": "date-time",
+     "default": "2026-01-01T00:00:00Z"
+    },
+    {
+     "key": "count",
+     "label": "count",
+     "required": true,
+     "kind": "number",
+     "integer": true,
+     "minimum": 1,
+     "maximum": 13,
+     "default": 3
+    },
+    {
+     "key": "ratio",
+     "label": "ratio",
+     "required": false,
+     "kind": "number",
+     "integer": false,
+     "minimum": -1.5,
+     "maximum": 1e+21,
+     "default": 0.1
+    },
+    {
+     "key": "big",
+     "label": "big",
+     "required": false,
+     "kind": "number",
+     "integer": false,
+     "default": 1e+21
+    },
+    {
+     "key": "negz",
+     "label": "negz",
+     "required": false,
+     "kind": "number",
+     "integer": false,
+     "default": 0
+    },
+    {
+     "key": "notify",
+     "label": "notify",
+     "required": false,
+     "kind": "boolean",
+     "default": true
+    },
+    {
+     "key": "off",
+     "label": "off",
+     "required": false,
+     "kind": "boolean"
+    }
+   ],
+   "initial": {
+    "title": "",
+    "email": "",
+    "when": "2026-01-01T00:00:00Z",
+    "count": "3",
+    "ratio": "0.1",
+    "big": "1e+21",
+    "negz": "0",
+    "notify": true,
+    "off": false
+   },
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "errors": {
+       "title": "Required"
+      }
+     }
+    },
+    {
+     "values": {
+      "title": " abc ",
+      "email": "a@b",
+      "count": " 0x5 ",
+      "ratio": "1e3",
+      "notify": false
+     },
+     "out": {
+      "ok": {
+       "title": "abc",
+       "email": "a@b",
+       "count": 5,
+       "ratio": 1000,
+       "notify": false,
+       "off": false
+      }
+     }
+    },
+    {
+     "values": {
+      "title": "ab",
+      "count": "2.5",
+      "ratio": "-2"
+     },
+     "out": {
+      "errors": {
+       "title": "At least 3 characters",
+       "count": "Enter a whole number",
+       "ratio": "Must be at least -1.5"
+      }
+     }
+    },
+    {
+     "values": {
+      "title": "abcdefghi",
+      "count": "14",
+      "ratio": "x"
+     },
+     "out": {
+      "errors": {
+       "title": "At most 8 characters",
+       "count": "Must be at most 13",
+       "ratio": "Enter a number"
+      }
+     }
+    },
+    {
+     "values": {
+      "title": "",
+      "count": "",
+      "ratio": "Infinity"
+     },
+     "out": {
+      "errors": {
+       "title": "Required",
+       "count": "Required",
+       "ratio": "Enter a number"
+      }
+     }
+    },
+    {
+     "values": {
+      "title": "\ud83d\ude00\ud83d\ude00",
+      "count": "-0",
+      "ratio": ".5",
+      "off": "true"
+     },
+     "out": {
+      "errors": {
+       "count": "Must be at least 1"
+      }
+     }
+    },
+    {
+     "values": {
+      "title": "okay",
+      "count": "1e1",
+      "big": "  ",
+      "email": 5
+     },
+     "out": {
+      "ok": {
+       "title": "okay",
+       "count": 10,
+       "notify": false,
+       "off": false
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "enums",
+   "schema": {
+    "properties": {
+     "pri": {
+      "type": "string",
+      "enum": [
+       "low",
+       2,
+       "high",
+       " pad "
+      ],
+      "enumNames": [
+       "Low",
+       "Two",
+       ""
+      ]
+     },
+     "one": {
+      "oneOf": [
+       {
+        "const": "a",
+        "title": "A"
+       },
+       {
+        "const": 1
+       },
+       "x",
+       {
+        "const": "b",
+        "title": ""
+       }
+      ],
+      "default": "b"
+     },
+     "any": {
+      "anyOf": [
+       {
+        "const": "z"
+       }
+      ],
+      "default": ""
+     },
+     "both": {
+      "enum": [],
+      "oneOf": [
+       {
+        "const": "q"
+       }
+      ],
+      "type": "string"
+     },
+     "empty": {
+      "oneOf": [
+       {
+        "const": 3
+       }
+      ],
+      "type": "boolean"
+     },
+     "tags": {
+      "type": "array",
+      "items": {
+       "enum": [
+        "bug",
+        "ui",
+        "port"
+       ]
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "default": [
+       "ui",
+       4,
+       "nope"
+      ]
+     },
+     "alt": {
+      "type": "array",
+      "title": "Alt",
+      "items": {
+       "anyOf": [
+        {
+         "const": "x",
+         "title": "Ex"
+        }
+       ]
+      }
+     },
+     "bad": {
+      "type": "array",
+      "items": {
+       "enum": []
+      }
+     },
+     "noitems": {
+      "type": "array"
+     }
+    },
+    "required": [
+     "pri",
+     "tags",
+     "alt"
+    ]
+   },
+   "fields": [
+    {
+     "key": "pri",
+     "label": "pri",
+     "required": true,
+     "kind": "enum",
+     "options": [
+      {
+       "value": "low",
+       "label": "Low"
+      },
+      {
+       "value": "high",
+       "label": ""
+      },
+      {
+       "value": " pad ",
+       "label": " pad "
+      }
+     ]
+    },
+    {
+     "key": "one",
+     "label": "one",
+     "required": false,
+     "kind": "enum",
+     "options": [
+      {
+       "value": "a",
+       "label": "A"
+      },
+      {
+       "value": "b",
+       "label": "b"
+      }
+     ],
+     "default": "b"
+    },
+    {
+     "key": "any",
+     "label": "any",
+     "required": false,
+     "kind": "enum",
+     "options": [
+      {
+       "value": "z",
+       "label": "z"
+      }
+     ]
+    },
+    {
+     "key": "both",
+     "label": "both",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "empty",
+     "label": "empty",
+     "required": false,
+     "kind": "boolean"
+    },
+    {
+     "key": "tags",
+     "label": "tags",
+     "required": true,
+     "kind": "multi-enum",
+     "options": [
+      {
+       "value": "bug",
+       "label": "bug"
+      },
+      {
+       "value": "ui",
+       "label": "ui"
+      },
+      {
+       "value": "port",
+       "label": "port"
+      }
+     ],
+     "minItems": 2,
+     "maxItems": 2,
+     "default": [
+      "ui",
+      "nope"
+     ]
+    },
+    {
+     "key": "alt",
+     "label": "Alt",
+     "required": true,
+     "kind": "multi-enum",
+     "options": [
+      {
+       "value": "x",
+       "label": "Ex"
+      }
+     ]
+    }
+   ],
+   "initial": {
+    "pri": "",
+    "one": "b",
+    "any": "",
+    "both": "",
+    "empty": false,
+    "tags": [
+     "ui",
+     "nope"
+    ],
+    "alt": []
+   },
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "errors": {
+       "pri": "Required",
+       "tags": "Pick at least 2",
+       "alt": "Pick at least one"
+      }
+     }
+    },
+    {
+     "values": {
+      "pri": "low",
+      "one": "a",
+      "any": "z",
+      "both": "q",
+      "tags": [
+       "bug",
+       "ui"
+      ],
+      "alt": [
+       "x"
+      ]
+     },
+     "out": {
+      "ok": {
+       "pri": "low",
+       "one": "a",
+       "any": "z",
+       "both": "q",
+       "empty": false,
+       "tags": [
+        "bug",
+        "ui"
+       ],
+       "alt": [
+        "x"
+       ]
+      }
+     }
+    },
+    {
+     "values": {
+      "pri": " low ",
+      "one": "c",
+      "tags": [
+       "bug"
+      ],
+      "alt": []
+     },
+     "out": {
+      "errors": {
+       "one": "Pick an option",
+       "tags": "Pick at least 2",
+       "alt": "Pick at least one"
+      }
+     }
+    },
+    {
+     "values": {
+      "pri": "pad",
+      "tags": [
+       "bug",
+       "ui",
+       "port"
+      ],
+      "alt": [
+       "x",
+       "y"
+      ]
+     },
+     "out": {
+      "errors": {
+       "pri": "Pick an option",
+       "tags": "Pick at most 2"
+      }
+     }
+    },
+    {
+     "values": {
+      "pri": " pad ",
+      "tags": [
+       "nope"
+      ],
+      "alt": "x",
+      "empty": true
+     },
+     "out": {
+      "errors": {
+       "pri": "Pick an option",
+       "tags": "Pick at least one",
+       "alt": "Pick at least one"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "keys",
+   "schema": {
+    "properties": {
+     "2": {
+      "type": "boolean"
+     },
+     "10": {
+      "type": "string"
+     },
+     "__proto__": {
+      "type": "string"
+     },
+     "b": {
+      "type": "string"
+     },
+     "01": {
+      "type": "string"
+     },
+     "constructor": {
+      "type": "string"
+     },
+     "prototype": {
+      "type": "string"
+     },
+     "obj": {
+      "type": "object"
+     },
+     "str": "string",
+     "list": [
+      {
+       "type": "string"
+      }
+     ],
+     "nul": null,
+     "none": {
+      "title": "No type"
+     }
+    },
+    "required": [
+     "b",
+     "10"
+    ]
+   },
+   "fields": [
+    {
+     "key": "2",
+     "label": "2",
+     "required": false,
+     "kind": "boolean"
+    },
+    {
+     "key": "10",
+     "label": "10",
+     "required": true,
+     "kind": "string"
+    },
+    {
+     "key": "b",
+     "label": "b",
+     "required": true,
+     "kind": "string"
+    },
+    {
+     "key": "01",
+     "label": "01",
+     "required": false,
+     "kind": "string"
+    }
+   ],
+   "initial": {
+    "2": false,
+    "10": "",
+    "b": "",
+    "01": ""
+   },
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "errors": {
+       "10": "Required",
+       "b": "Required"
+      }
+     }
+    },
+    {
+     "values": {
+      "2": true,
+      "10": "y",
+      "b": "x",
+      "01": "z"
+     },
+     "out": {
+      "ok": {
+       "2": true,
+       "10": "y",
+       "b": "x",
+       "01": "z"
+      }
+     }
+    },
+    {
+     "values": {
+      "10": "y"
+     },
+     "out": {
+      "errors": {
+       "b": "Required"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "not-a-record",
+   "schema": [],
+   "fields": [],
+   "initial": {},
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "ok": {}
+     }
+    }
+   ]
+  },
+  {
+   "name": "no-properties",
+   "schema": {
+    "type": "object"
+   },
+   "fields": [],
+   "initial": {},
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "ok": {}
+     }
+    }
+   ]
+  },
+  {
+   "name": "array-properties",
+   "schema": {
+    "properties": [
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "fields": [],
+   "initial": {},
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "ok": {}
+     }
+    }
+   ]
+  },
+  {
+   "name": "caps",
+   "schema": {
+    "properties": {
+     "f0": {
+      "enum": [
+       "o0",
+       "o1",
+       "o2",
+       "o3",
+       "o4",
+       "o5",
+       "o6",
+       "o7",
+       "o8",
+       "o9",
+       "o10",
+       "o11",
+       "o12",
+       "o13",
+       "o14",
+       "o15",
+       "o16",
+       "o17",
+       "o18",
+       "o19",
+       "o20",
+       "o21",
+       "o22",
+       "o23",
+       "o24",
+       "o25",
+       "o26",
+       "o27",
+       "o28",
+       "o29",
+       "o30",
+       "o31",
+       "o32",
+       "o33",
+       "o34",
+       "o35",
+       "o36",
+       "o37",
+       "o38",
+       "o39",
+       "o40",
+       "o41",
+       "o42",
+       "o43",
+       "o44",
+       "o45",
+       "o46",
+       "o47",
+       "o48",
+       "o49",
+       "o50",
+       "o51",
+       "o52",
+       "o53",
+       "o54",
+       "o55",
+       "o56",
+       "o57",
+       "o58",
+       "o59",
+       "o60",
+       "o61",
+       "o62",
+       "o63",
+       "o64",
+       "o65",
+       "o66",
+       "o67",
+       "o68",
+       "o69",
+       "o70",
+       "o71",
+       "o72",
+       "o73",
+       "o74",
+       "o75",
+       "o76",
+       "o77",
+       "o78",
+       "o79",
+       "o80",
+       "o81",
+       "o82",
+       "o83",
+       "o84",
+       "o85",
+       "o86",
+       "o87",
+       "o88",
+       "o89",
+       "o90",
+       "o91",
+       "o92",
+       "o93",
+       "o94",
+       "o95",
+       "o96",
+       "o97",
+       "o98",
+       "o99",
+       "o100",
+       "o101",
+       "o102",
+       "o103",
+       "o104",
+       "o105",
+       "o106",
+       "o107",
+       "o108",
+       "o109",
+       "o110",
+       "o111",
+       "o112",
+       "o113",
+       "o114",
+       "o115",
+       "o116",
+       "o117",
+       "o118",
+       "o119",
+       "o120",
+       "o121",
+       "o122",
+       "o123",
+       "o124",
+       "o125",
+       "o126",
+       "o127",
+       "o128",
+       "o129",
+       "o130",
+       "o131",
+       "o132",
+       "o133",
+       "o134",
+       "o135",
+       "o136",
+       "o137",
+       "o138",
+       "o139",
+       "o140",
+       "o141",
+       "o142",
+       "o143",
+       "o144",
+       "o145",
+       "o146",
+       "o147",
+       "o148",
+       "o149",
+       "o150",
+       "o151",
+       "o152",
+       "o153",
+       "o154",
+       "o155",
+       "o156",
+       "o157",
+       "o158",
+       "o159",
+       "o160",
+       "o161",
+       "o162",
+       "o163",
+       "o164",
+       "o165",
+       "o166",
+       "o167",
+       "o168",
+       "o169",
+       "o170",
+       "o171",
+       "o172",
+       "o173",
+       "o174",
+       "o175",
+       "o176",
+       "o177",
+       "o178",
+       "o179",
+       "o180",
+       "o181",
+       "o182",
+       "o183",
+       "o184",
+       "o185",
+       "o186",
+       "o187",
+       "o188",
+       "o189",
+       "o190",
+       "o191",
+       "o192",
+       "o193",
+       "o194",
+       "o195",
+       "o196",
+       "o197",
+       "o198",
+       "o199",
+       "o200",
+       "o201",
+       "o202",
+       "o203",
+       "o204"
+      ]
+     },
+     "f1": {
+      "type": "string"
+     },
+     "f2": {
+      "type": "string"
+     },
+     "f3": {
+      "type": "string"
+     },
+     "f4": {
+      "type": "string"
+     },
+     "f5": {
+      "type": "string"
+     },
+     "f6": {
+      "type": "string"
+     },
+     "f7": {
+      "type": "string"
+     },
+     "f8": {
+      "type": "string"
+     },
+     "f9": {
+      "type": "string"
+     },
+     "f10": {
+      "type": "string"
+     },
+     "f11": {
+      "type": "string"
+     },
+     "f12": {
+      "type": "string"
+     },
+     "f13": {
+      "type": "string"
+     },
+     "f14": {
+      "type": "string"
+     },
+     "f15": {
+      "type": "string"
+     },
+     "f16": {
+      "type": "string"
+     },
+     "f17": {
+      "type": "string"
+     },
+     "f18": {
+      "type": "string"
+     },
+     "f19": {
+      "type": "string"
+     },
+     "f20": {
+      "type": "string"
+     },
+     "f21": {
+      "type": "string"
+     },
+     "f22": {
+      "type": "string"
+     },
+     "f23": {
+      "type": "string"
+     },
+     "f24": {
+      "type": "string"
+     },
+     "f25": {
+      "type": "string"
+     },
+     "f26": {
+      "type": "string"
+     },
+     "f27": {
+      "type": "string"
+     },
+     "f28": {
+      "type": "string"
+     },
+     "f29": {
+      "type": "string"
+     },
+     "f30": {
+      "type": "string"
+     },
+     "f31": {
+      "type": "string"
+     },
+     "f32": {
+      "type": "string"
+     },
+     "f33": {
+      "type": "string"
+     },
+     "f34": {
+      "type": "string"
+     },
+     "f35": {
+      "type": "string"
+     },
+     "f36": {
+      "type": "string"
+     },
+     "f37": {
+      "type": "string"
+     },
+     "f38": {
+      "type": "string"
+     },
+     "f39": {
+      "type": "string"
+     },
+     "f40": {
+      "type": "string"
+     },
+     "f41": {
+      "type": "string"
+     },
+     "f42": {
+      "type": "string"
+     },
+     "f43": {
+      "type": "string"
+     },
+     "f44": {
+      "type": "string"
+     },
+     "f45": {
+      "type": "string"
+     },
+     "f46": {
+      "type": "string"
+     },
+     "f47": {
+      "type": "string"
+     },
+     "f48": {
+      "type": "string"
+     },
+     "f49": {
+      "type": "string"
+     },
+     "f50": {
+      "type": "string"
+     },
+     "f51": {
+      "type": "string"
+     },
+     "f52": {
+      "type": "string"
+     },
+     "f53": {
+      "type": "string"
+     },
+     "f54": {
+      "type": "string"
+     }
+    }
+   },
+   "fields": [
+    {
+     "key": "f0",
+     "label": "f0",
+     "required": false,
+     "kind": "enum",
+     "options": [
+      {
+       "value": "o0",
+       "label": "o0"
+      },
+      {
+       "value": "o1",
+       "label": "o1"
+      },
+      {
+       "value": "o2",
+       "label": "o2"
+      },
+      {
+       "value": "o3",
+       "label": "o3"
+      },
+      {
+       "value": "o4",
+       "label": "o4"
+      },
+      {
+       "value": "o5",
+       "label": "o5"
+      },
+      {
+       "value": "o6",
+       "label": "o6"
+      },
+      {
+       "value": "o7",
+       "label": "o7"
+      },
+      {
+       "value": "o8",
+       "label": "o8"
+      },
+      {
+       "value": "o9",
+       "label": "o9"
+      },
+      {
+       "value": "o10",
+       "label": "o10"
+      },
+      {
+       "value": "o11",
+       "label": "o11"
+      },
+      {
+       "value": "o12",
+       "label": "o12"
+      },
+      {
+       "value": "o13",
+       "label": "o13"
+      },
+      {
+       "value": "o14",
+       "label": "o14"
+      },
+      {
+       "value": "o15",
+       "label": "o15"
+      },
+      {
+       "value": "o16",
+       "label": "o16"
+      },
+      {
+       "value": "o17",
+       "label": "o17"
+      },
+      {
+       "value": "o18",
+       "label": "o18"
+      },
+      {
+       "value": "o19",
+       "label": "o19"
+      },
+      {
+       "value": "o20",
+       "label": "o20"
+      },
+      {
+       "value": "o21",
+       "label": "o21"
+      },
+      {
+       "value": "o22",
+       "label": "o22"
+      },
+      {
+       "value": "o23",
+       "label": "o23"
+      },
+      {
+       "value": "o24",
+       "label": "o24"
+      },
+      {
+       "value": "o25",
+       "label": "o25"
+      },
+      {
+       "value": "o26",
+       "label": "o26"
+      },
+      {
+       "value": "o27",
+       "label": "o27"
+      },
+      {
+       "value": "o28",
+       "label": "o28"
+      },
+      {
+       "value": "o29",
+       "label": "o29"
+      },
+      {
+       "value": "o30",
+       "label": "o30"
+      },
+      {
+       "value": "o31",
+       "label": "o31"
+      },
+      {
+       "value": "o32",
+       "label": "o32"
+      },
+      {
+       "value": "o33",
+       "label": "o33"
+      },
+      {
+       "value": "o34",
+       "label": "o34"
+      },
+      {
+       "value": "o35",
+       "label": "o35"
+      },
+      {
+       "value": "o36",
+       "label": "o36"
+      },
+      {
+       "value": "o37",
+       "label": "o37"
+      },
+      {
+       "value": "o38",
+       "label": "o38"
+      },
+      {
+       "value": "o39",
+       "label": "o39"
+      },
+      {
+       "value": "o40",
+       "label": "o40"
+      },
+      {
+       "value": "o41",
+       "label": "o41"
+      },
+      {
+       "value": "o42",
+       "label": "o42"
+      },
+      {
+       "value": "o43",
+       "label": "o43"
+      },
+      {
+       "value": "o44",
+       "label": "o44"
+      },
+      {
+       "value": "o45",
+       "label": "o45"
+      },
+      {
+       "value": "o46",
+       "label": "o46"
+      },
+      {
+       "value": "o47",
+       "label": "o47"
+      },
+      {
+       "value": "o48",
+       "label": "o48"
+      },
+      {
+       "value": "o49",
+       "label": "o49"
+      },
+      {
+       "value": "o50",
+       "label": "o50"
+      },
+      {
+       "value": "o51",
+       "label": "o51"
+      },
+      {
+       "value": "o52",
+       "label": "o52"
+      },
+      {
+       "value": "o53",
+       "label": "o53"
+      },
+      {
+       "value": "o54",
+       "label": "o54"
+      },
+      {
+       "value": "o55",
+       "label": "o55"
+      },
+      {
+       "value": "o56",
+       "label": "o56"
+      },
+      {
+       "value": "o57",
+       "label": "o57"
+      },
+      {
+       "value": "o58",
+       "label": "o58"
+      },
+      {
+       "value": "o59",
+       "label": "o59"
+      },
+      {
+       "value": "o60",
+       "label": "o60"
+      },
+      {
+       "value": "o61",
+       "label": "o61"
+      },
+      {
+       "value": "o62",
+       "label": "o62"
+      },
+      {
+       "value": "o63",
+       "label": "o63"
+      },
+      {
+       "value": "o64",
+       "label": "o64"
+      },
+      {
+       "value": "o65",
+       "label": "o65"
+      },
+      {
+       "value": "o66",
+       "label": "o66"
+      },
+      {
+       "value": "o67",
+       "label": "o67"
+      },
+      {
+       "value": "o68",
+       "label": "o68"
+      },
+      {
+       "value": "o69",
+       "label": "o69"
+      },
+      {
+       "value": "o70",
+       "label": "o70"
+      },
+      {
+       "value": "o71",
+       "label": "o71"
+      },
+      {
+       "value": "o72",
+       "label": "o72"
+      },
+      {
+       "value": "o73",
+       "label": "o73"
+      },
+      {
+       "value": "o74",
+       "label": "o74"
+      },
+      {
+       "value": "o75",
+       "label": "o75"
+      },
+      {
+       "value": "o76",
+       "label": "o76"
+      },
+      {
+       "value": "o77",
+       "label": "o77"
+      },
+      {
+       "value": "o78",
+       "label": "o78"
+      },
+      {
+       "value": "o79",
+       "label": "o79"
+      },
+      {
+       "value": "o80",
+       "label": "o80"
+      },
+      {
+       "value": "o81",
+       "label": "o81"
+      },
+      {
+       "value": "o82",
+       "label": "o82"
+      },
+      {
+       "value": "o83",
+       "label": "o83"
+      },
+      {
+       "value": "o84",
+       "label": "o84"
+      },
+      {
+       "value": "o85",
+       "label": "o85"
+      },
+      {
+       "value": "o86",
+       "label": "o86"
+      },
+      {
+       "value": "o87",
+       "label": "o87"
+      },
+      {
+       "value": "o88",
+       "label": "o88"
+      },
+      {
+       "value": "o89",
+       "label": "o89"
+      },
+      {
+       "value": "o90",
+       "label": "o90"
+      },
+      {
+       "value": "o91",
+       "label": "o91"
+      },
+      {
+       "value": "o92",
+       "label": "o92"
+      },
+      {
+       "value": "o93",
+       "label": "o93"
+      },
+      {
+       "value": "o94",
+       "label": "o94"
+      },
+      {
+       "value": "o95",
+       "label": "o95"
+      },
+      {
+       "value": "o96",
+       "label": "o96"
+      },
+      {
+       "value": "o97",
+       "label": "o97"
+      },
+      {
+       "value": "o98",
+       "label": "o98"
+      },
+      {
+       "value": "o99",
+       "label": "o99"
+      },
+      {
+       "value": "o100",
+       "label": "o100"
+      },
+      {
+       "value": "o101",
+       "label": "o101"
+      },
+      {
+       "value": "o102",
+       "label": "o102"
+      },
+      {
+       "value": "o103",
+       "label": "o103"
+      },
+      {
+       "value": "o104",
+       "label": "o104"
+      },
+      {
+       "value": "o105",
+       "label": "o105"
+      },
+      {
+       "value": "o106",
+       "label": "o106"
+      },
+      {
+       "value": "o107",
+       "label": "o107"
+      },
+      {
+       "value": "o108",
+       "label": "o108"
+      },
+      {
+       "value": "o109",
+       "label": "o109"
+      },
+      {
+       "value": "o110",
+       "label": "o110"
+      },
+      {
+       "value": "o111",
+       "label": "o111"
+      },
+      {
+       "value": "o112",
+       "label": "o112"
+      },
+      {
+       "value": "o113",
+       "label": "o113"
+      },
+      {
+       "value": "o114",
+       "label": "o114"
+      },
+      {
+       "value": "o115",
+       "label": "o115"
+      },
+      {
+       "value": "o116",
+       "label": "o116"
+      },
+      {
+       "value": "o117",
+       "label": "o117"
+      },
+      {
+       "value": "o118",
+       "label": "o118"
+      },
+      {
+       "value": "o119",
+       "label": "o119"
+      },
+      {
+       "value": "o120",
+       "label": "o120"
+      },
+      {
+       "value": "o121",
+       "label": "o121"
+      },
+      {
+       "value": "o122",
+       "label": "o122"
+      },
+      {
+       "value": "o123",
+       "label": "o123"
+      },
+      {
+       "value": "o124",
+       "label": "o124"
+      },
+      {
+       "value": "o125",
+       "label": "o125"
+      },
+      {
+       "value": "o126",
+       "label": "o126"
+      },
+      {
+       "value": "o127",
+       "label": "o127"
+      },
+      {
+       "value": "o128",
+       "label": "o128"
+      },
+      {
+       "value": "o129",
+       "label": "o129"
+      },
+      {
+       "value": "o130",
+       "label": "o130"
+      },
+      {
+       "value": "o131",
+       "label": "o131"
+      },
+      {
+       "value": "o132",
+       "label": "o132"
+      },
+      {
+       "value": "o133",
+       "label": "o133"
+      },
+      {
+       "value": "o134",
+       "label": "o134"
+      },
+      {
+       "value": "o135",
+       "label": "o135"
+      },
+      {
+       "value": "o136",
+       "label": "o136"
+      },
+      {
+       "value": "o137",
+       "label": "o137"
+      },
+      {
+       "value": "o138",
+       "label": "o138"
+      },
+      {
+       "value": "o139",
+       "label": "o139"
+      },
+      {
+       "value": "o140",
+       "label": "o140"
+      },
+      {
+       "value": "o141",
+       "label": "o141"
+      },
+      {
+       "value": "o142",
+       "label": "o142"
+      },
+      {
+       "value": "o143",
+       "label": "o143"
+      },
+      {
+       "value": "o144",
+       "label": "o144"
+      },
+      {
+       "value": "o145",
+       "label": "o145"
+      },
+      {
+       "value": "o146",
+       "label": "o146"
+      },
+      {
+       "value": "o147",
+       "label": "o147"
+      },
+      {
+       "value": "o148",
+       "label": "o148"
+      },
+      {
+       "value": "o149",
+       "label": "o149"
+      },
+      {
+       "value": "o150",
+       "label": "o150"
+      },
+      {
+       "value": "o151",
+       "label": "o151"
+      },
+      {
+       "value": "o152",
+       "label": "o152"
+      },
+      {
+       "value": "o153",
+       "label": "o153"
+      },
+      {
+       "value": "o154",
+       "label": "o154"
+      },
+      {
+       "value": "o155",
+       "label": "o155"
+      },
+      {
+       "value": "o156",
+       "label": "o156"
+      },
+      {
+       "value": "o157",
+       "label": "o157"
+      },
+      {
+       "value": "o158",
+       "label": "o158"
+      },
+      {
+       "value": "o159",
+       "label": "o159"
+      },
+      {
+       "value": "o160",
+       "label": "o160"
+      },
+      {
+       "value": "o161",
+       "label": "o161"
+      },
+      {
+       "value": "o162",
+       "label": "o162"
+      },
+      {
+       "value": "o163",
+       "label": "o163"
+      },
+      {
+       "value": "o164",
+       "label": "o164"
+      },
+      {
+       "value": "o165",
+       "label": "o165"
+      },
+      {
+       "value": "o166",
+       "label": "o166"
+      },
+      {
+       "value": "o167",
+       "label": "o167"
+      },
+      {
+       "value": "o168",
+       "label": "o168"
+      },
+      {
+       "value": "o169",
+       "label": "o169"
+      },
+      {
+       "value": "o170",
+       "label": "o170"
+      },
+      {
+       "value": "o171",
+       "label": "o171"
+      },
+      {
+       "value": "o172",
+       "label": "o172"
+      },
+      {
+       "value": "o173",
+       "label": "o173"
+      },
+      {
+       "value": "o174",
+       "label": "o174"
+      },
+      {
+       "value": "o175",
+       "label": "o175"
+      },
+      {
+       "value": "o176",
+       "label": "o176"
+      },
+      {
+       "value": "o177",
+       "label": "o177"
+      },
+      {
+       "value": "o178",
+       "label": "o178"
+      },
+      {
+       "value": "o179",
+       "label": "o179"
+      },
+      {
+       "value": "o180",
+       "label": "o180"
+      },
+      {
+       "value": "o181",
+       "label": "o181"
+      },
+      {
+       "value": "o182",
+       "label": "o182"
+      },
+      {
+       "value": "o183",
+       "label": "o183"
+      },
+      {
+       "value": "o184",
+       "label": "o184"
+      },
+      {
+       "value": "o185",
+       "label": "o185"
+      },
+      {
+       "value": "o186",
+       "label": "o186"
+      },
+      {
+       "value": "o187",
+       "label": "o187"
+      },
+      {
+       "value": "o188",
+       "label": "o188"
+      },
+      {
+       "value": "o189",
+       "label": "o189"
+      },
+      {
+       "value": "o190",
+       "label": "o190"
+      },
+      {
+       "value": "o191",
+       "label": "o191"
+      },
+      {
+       "value": "o192",
+       "label": "o192"
+      },
+      {
+       "value": "o193",
+       "label": "o193"
+      },
+      {
+       "value": "o194",
+       "label": "o194"
+      },
+      {
+       "value": "o195",
+       "label": "o195"
+      },
+      {
+       "value": "o196",
+       "label": "o196"
+      },
+      {
+       "value": "o197",
+       "label": "o197"
+      },
+      {
+       "value": "o198",
+       "label": "o198"
+      },
+      {
+       "value": "o199",
+       "label": "o199"
+      }
+     ]
+    },
+    {
+     "key": "f1",
+     "label": "f1",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f2",
+     "label": "f2",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f3",
+     "label": "f3",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f4",
+     "label": "f4",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f5",
+     "label": "f5",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f6",
+     "label": "f6",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f7",
+     "label": "f7",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f8",
+     "label": "f8",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f9",
+     "label": "f9",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f10",
+     "label": "f10",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f11",
+     "label": "f11",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f12",
+     "label": "f12",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f13",
+     "label": "f13",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f14",
+     "label": "f14",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f15",
+     "label": "f15",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f16",
+     "label": "f16",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f17",
+     "label": "f17",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f18",
+     "label": "f18",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f19",
+     "label": "f19",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f20",
+     "label": "f20",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f21",
+     "label": "f21",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f22",
+     "label": "f22",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f23",
+     "label": "f23",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f24",
+     "label": "f24",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f25",
+     "label": "f25",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f26",
+     "label": "f26",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f27",
+     "label": "f27",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f28",
+     "label": "f28",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f29",
+     "label": "f29",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f30",
+     "label": "f30",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f31",
+     "label": "f31",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f32",
+     "label": "f32",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f33",
+     "label": "f33",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f34",
+     "label": "f34",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f35",
+     "label": "f35",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f36",
+     "label": "f36",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f37",
+     "label": "f37",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f38",
+     "label": "f38",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f39",
+     "label": "f39",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f40",
+     "label": "f40",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f41",
+     "label": "f41",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f42",
+     "label": "f42",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f43",
+     "label": "f43",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f44",
+     "label": "f44",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f45",
+     "label": "f45",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f46",
+     "label": "f46",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f47",
+     "label": "f47",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f48",
+     "label": "f48",
+     "required": false,
+     "kind": "string"
+    },
+    {
+     "key": "f49",
+     "label": "f49",
+     "required": false,
+     "kind": "string"
+    }
+   ],
+   "initial": {
+    "f0": "",
+    "f1": "",
+    "f2": "",
+    "f3": "",
+    "f4": "",
+    "f5": "",
+    "f6": "",
+    "f7": "",
+    "f8": "",
+    "f9": "",
+    "f10": "",
+    "f11": "",
+    "f12": "",
+    "f13": "",
+    "f14": "",
+    "f15": "",
+    "f16": "",
+    "f17": "",
+    "f18": "",
+    "f19": "",
+    "f20": "",
+    "f21": "",
+    "f22": "",
+    "f23": "",
+    "f24": "",
+    "f25": "",
+    "f26": "",
+    "f27": "",
+    "f28": "",
+    "f29": "",
+    "f30": "",
+    "f31": "",
+    "f32": "",
+    "f33": "",
+    "f34": "",
+    "f35": "",
+    "f36": "",
+    "f37": "",
+    "f38": "",
+    "f39": "",
+    "f40": "",
+    "f41": "",
+    "f42": "",
+    "f43": "",
+    "f44": "",
+    "f45": "",
+    "f46": "",
+    "f47": "",
+    "f48": "",
+    "f49": ""
+   },
+   "builds": [
+    {
+     "values": null,
+     "out": {
+      "ok": {}
+     }
+    },
+    {
+     "values": {
+      "f0": "o204",
+      "f1": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     },
+     "out": {
+      "errors": {
+       "f0": "Pick an option"
+      }
+     }
+    },
+    {
+     "values": {
+      "f0": "o199"
+     },
+     "out": {
+      "ok": {
+       "f0": "o199"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "url": [
+  {
+   "raw": null,
+   "out": null
+  },
+  {
+   "raw": "",
+   "out": null
+  },
+  {
+   "raw": "https://example.com/a?b=1#c",
+   "out": {
+    "href": "https://example.com/a?b=1#c",
+    "host": "example.com",
+    "origin": "https://example.com"
+   }
+  },
+  {
+   "raw": " https://Example.COM:8443/x/../y ",
+   "out": {
+    "href": "https://example.com:8443/y",
+    "host": "example.com:8443",
+    "origin": "https://example.com:8443"
+   }
+  },
+  {
+   "raw": "http://x.test:80/",
+   "out": {
+    "href": "http://x.test/",
+    "host": "x.test",
+    "origin": "http://x.test"
+   }
+  },
+  {
+   "raw": "https://user:pw@host.test/p",
+   "out": {
+    "href": "https://user:pw@host.test/p",
+    "host": "host.test",
+    "origin": "https://host.test"
+   }
+  },
+  {
+   "raw": "http://[::1]:3000/cb",
+   "out": {
+    "href": "http://[::1]:3000/cb",
+    "host": "[::1]:3000",
+    "origin": "http://[::1]:3000"
+   }
+  },
+  {
+   "raw": "https://b\u00fccher.example/",
+   "out": {
+    "href": "https://xn--bcher-kva.example/",
+    "host": "xn--bcher-kva.example",
+    "origin": "https://xn--bcher-kva.example"
+   }
+  },
+  {
+   "raw": "javascript:alert(1)",
+   "out": null
+  },
+  {
+   "raw": "data:text/html,<b>x</b>",
+   "out": null
+  },
+  {
+   "raw": "file:///etc/passwd",
+   "out": null
+  },
+  {
+   "raw": "ftp://x.test/",
+   "out": null
+  },
+  {
+   "raw": "not a url",
+   "out": null
+  },
+  {
+   "raw": "HTTPS://LOUD.TEST",
+   "out": {
+    "href": "https://loud.test/",
+    "host": "loud.test",
+    "origin": "https://loud.test"
+   }
+  },
+  {
+   "raw": "https:\\\\back.test\\path",
+   "out": {
+    "href": "https://back.test/path",
+    "host": "back.test",
+    "origin": "https://back.test"
+   }
+  }
+ ],
+ "formatAsk": [
+  {
+   "questions": [],
+   "answers": [],
+   "out": ""
+  },
+  {
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "",
+     "options": [
+      {
+       "label": "P",
+       "description": ""
+      },
+      {
+       "label": "S",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [
+    {
+     "label": "P"
+    }
+   ],
+   "out": "> Which DB?\nP"
+  },
+  {
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "",
+     "options": [
+      {
+       "label": "P",
+       "description": ""
+      },
+      {
+       "label": "S",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [],
+   "out": "> Which DB?\n(declined)"
+  },
+  {
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "",
+     "options": [
+      {
+       "label": "P",
+       "description": ""
+      },
+      {
+       "label": "S",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [
+    {
+     "label": null,
+     "custom": "  mine  "
+    }
+   ],
+   "out": "> Which DB?\nOther: mine"
+  },
+  {
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "",
+     "options": [
+      {
+       "label": "P",
+       "description": ""
+      },
+      {
+       "label": "S",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [
+    {
+     "label": "",
+     "custom": "   "
+    }
+   ],
+   "out": "> Which DB?\n(declined)"
+  },
+  {
+   "questions": [
+    {
+     "question": "Q1",
+     "header": "",
+     "options": [
+      {
+       "label": "a",
+       "description": ""
+      },
+      {
+       "label": "b",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Q2",
+     "header": "",
+     "options": [
+      {
+       "label": "c",
+       "description": ""
+      },
+      {
+       "label": "d",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    },
+    {
+     "question": "Q3",
+     "header": "",
+     "options": [
+      {
+       "label": "e",
+       "description": ""
+      },
+      {
+       "label": "f",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [
+    {
+     "label": "a"
+    },
+    {
+     "selected": [
+      "c",
+      "d"
+     ],
+     "custom": "x"
+    }
+   ],
+   "out": "> Q1\na\n\n> Q2\nc, d, Other: x\n\n> Q3\n(declined)"
+  },
+  {
+   "questions": [
+    {
+     "question": "Multi",
+     "header": "",
+     "options": [
+      {
+       "label": "a",
+       "description": ""
+      },
+      {
+       "label": "b",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "answers": [
+    {
+     "selected": [],
+     "label": "b"
+    }
+   ],
+   "out": "> Multi\nb"
+  },
+  {
+   "questions": [
+    {
+     "question": "Multi",
+     "header": "",
+     "options": [
+      {
+       "label": "a",
+       "description": ""
+      },
+      {
+       "label": "b",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "answers": [
+    {
+     "selected": [
+      "a"
+     ],
+     "label": "b"
+    }
+   ],
+   "out": "> Multi\na"
+  },
+  {
+   "questions": [
+    {
+     "question": "Lines\nin it",
+     "header": "",
+     "options": [
+      {
+       "label": "a",
+       "description": ""
+      },
+      {
+       "label": "b",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "answers": [
+    {
+     "label": "a, b"
+    },
+    {
+     "label": "extra"
+    }
+   ],
+   "out": "> Lines\nin it\na, b"
+  }
+ ],
+ "looksLikeHtml": [
+  {
+   "s": "",
+   "out": false
+  },
+  {
+   "s": "plain",
+   "out": false
+  },
+  {
+   "s": "<b>x</b>",
+   "out": true
+  },
+  {
+   "s": "a < div>",
+   "out": true
+  },
+  {
+   "s": "</p>",
+   "out": true
+  },
+  {
+   "s": "<x",
+   "out": false
+  },
+  {
+   "s": "< /a>",
+   "out": true
+  },
+  {
+   "s": "<br/>",
+   "out": true
+  },
+  {
+   "s": "a < b",
+   "out": false
+  },
+  {
+   "s": "<1>",
+   "out": false
+  },
+  {
+   "s": "</ a>",
+   "out": false
+  },
+  {
+   "s": "<>",
+   "out": false
+  },
+  {
+   "s": "<-->",
+   "out": false
+  },
+  {
+   "s": "x <\t\nspan class=\"q\">",
+   "out": true
+  },
+  {
+   "s": "<\u00a0a>",
+   "out": true
+  },
+  {
+   "s": "<\u3000a>",
+   "out": true
+  },
+  {
+   "s": "1 < 2 > 0",
+   "out": false
+  },
+  {
+   "s": "<a",
+   "out": false
+  },
+  {
+   "s": "<<a>",
+   "out": true
+  },
+  {
+   "s": "+--+\n| A |\n+--+",
+   "out": false
+  }
+ ],
+ "permissionCard": [
+  {
+   "name": "bash",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    }
+   },
+   "queueTotal": 1,
+   "autoModeAvailable": true,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": true,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Yes, and switch to auto mode",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "queued",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "suggestedRules": [
+     {
+      "toolName": "Bash",
+      "ruleContent": "git status:*"
+     }
+    ]
+   },
+   "queueTotal": 3,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": "1 of 3",
+    "queueTitle": "2 more waiting after this one",
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves Bash(git status:*) \u2014 not the whole tool.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "auto-off",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "edit",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Edit",
+    "toolUseId": "t1",
+    "input": {
+     "file_path": "a.rs"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": true,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Edit",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Edit tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Edit",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "titled",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "title": "Run the tests?",
+    "description": "In the sandbox",
+    "displayName": "Shell"
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Run the tests?",
+    "description": "In the sandbox",
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "empty-title",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "title": "",
+    "displayName": null
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "display-name",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "displayName": "Shell"
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Shell",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "rules",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "suggestedRules": [
+     {
+      "toolName": "Bash",
+      "ruleContent": "npm test:*"
+     },
+     {
+      "toolName": "Read",
+      "ruleContent": ""
+     },
+     {
+      "toolName": "Edit"
+     }
+    ]
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves Bash(npm test:*), Read, Edit \u2014 not the whole tool.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "suppress",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "suppressAlwaysAllowRule": true
+   },
+   "queueTotal": null,
+   "autoModeAvailable": true,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": null,
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "default-to-no",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "defaultToNo": true
+   },
+   "queueTotal": 2,
+   "autoModeAvailable": true,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": "1 of 2",
+    "queueTitle": "1 more waiting after this one",
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": true,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Cancel deny",
+     "Deny without feedback",
+     "Deny with feedback"
+    ],
+    "denyPanel": true,
+    "input": null
+   }
+  },
+  {
+   "name": "subagent",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "agentId": "explorer-2"
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": "Subagent \u00b7 explorer-2",
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "mcp-sdk",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "mcp__claudius__x",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "mcpServer": {
+     "name": "claudius",
+     "source": "sdk"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use mcp__claudius__x",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": "MCP \u00b7 claudius (sdk)",
+    "mcpSdk": true,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole mcp__claudius__x tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 mcp__claudius__x",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "mcp-user",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "mcp__srv__x",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "mcpServer": {
+     "name": "srv\u3164\u200e",
+     "source": "user"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use mcp__srv__x",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": "MCP \u00b7 srv\u2039U+3164\u203a\u2039U+200E\u203a (user)",
+    "mcpSdk": false,
+    "hook": null,
+    "symlink": null,
+    "hidden": "Contains 2 hidden/bidi characters, shown below as \u2039U+\u2026\u203a \u2014 read the command carefully.",
+    "rule": "\u201cAlways\u201d saves the whole mcp__srv__x tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 mcp__srv__x",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "hook",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "hookAsk": {}
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": "Asked by a hook",
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "hook-reason",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "hookAsk": {
+     "reason": "Policy \u202esays ask"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": "Asked by a hook: Policy \u2039U+202E\u203asays ask",
+    "symlink": null,
+    "hidden": "Contains 1 hidden/bidi character, shown below as \u2039U+\u2026\u203a \u2014 read the command carefully.",
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "symlink-in",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Read",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "symlink": {
+     "target": "/w/real.txt",
+     "outsideWorkingDirs": false,
+     "operation": "read"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Read",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": "Symlink target: /w/real.txt",
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Read tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Read",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "symlink-out",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Write",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    },
+    "symlink": {
+     "target": "/etc/x\u2060",
+     "outsideWorkingDirs": true,
+     "operation": "modify"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Write",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": "This will modify /etc/x\u2039U+2060\u203a (outside working directory) via a symlink",
+    "hidden": "Contains 1 hidden/bidi character, shown below as \u2039U+\u2026\u203a \u2014 read the command carefully.",
+    "rule": "\u201cAlways\u201d saves the whole Write tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Write",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "hidden-one",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "echo \u200b"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": null,
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": "Contains 1 hidden/bidi character, shown below as \u2039U+\u2026\u203a \u2014 read the command carefully.",
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": null
+   }
+  },
+  {
+   "name": "hidden-many",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "rm -rf \udb40\udc41\udb40\udc42",
+     "nested": [
+      1,
+      {
+       "k": "\ufeff"
+      }
+     ]
+    },
+    "title": "t\u202e",
+    "description": "d\u2066"
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": [
+    false,
+    "",
+    true
+   ],
+   "out": {
+    "summary": "t\u2039U+202E\u203a",
+    "description": "d\u2039U+2066\u203a",
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": "Contains 5 hidden/bidi characters, shown below as \u2039U+\u2026\u203a \u2014 read the command carefully.",
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": "{\n  \"command\": \"rm -rf \u2039U+E0041\u203a\u2039U+E0042\u203a\",\n  \"nested\": [\n    1,\n    {\n      \"k\": \"\u2039U+FEFF\u203a\"\n    }\n  ]\n}"
+   }
+  },
+  {
+   "name": "input-open",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "ls",
+     "n": 1.5,
+     "deep": {
+      "a": [
+       true,
+       null
+      ]
+     }
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": [
+    false,
+    "",
+    true
+   ],
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Deny\u2026"
+    ],
+    "denyPanel": false,
+    "input": "{\n  \"command\": \"ls\",\n  \"n\": 1.5,\n  \"deep\": {\n    \"a\": [\n      true,\n      null\n    ]\n  }\n}"
+   }
+  },
+  {
+   "name": "deny-open",
+   "request": {
+    "type": "permission_request",
+    "requestId": "r1",
+    "toolName": "Bash",
+    "toolUseId": "t1",
+    "input": {
+     "command": "git status"
+    }
+   },
+   "queueTotal": null,
+   "autoModeAvailable": false,
+   "state": [
+    true,
+    "because",
+    false
+   ],
+   "out": {
+    "summary": "Claude wants to use Bash",
+    "description": null,
+    "queue": null,
+    "queueTitle": null,
+    "agent": null,
+    "mcp": null,
+    "mcpSdk": null,
+    "hook": null,
+    "symlink": null,
+    "hidden": null,
+    "rule": "\u201cAlways\u201d saves the whole Bash tool \u2014 every call it can make, not just this one.",
+    "autoTip": false,
+    "defaultToNo": false,
+    "buttons": [
+     "Tool input \u2014 Bash",
+     "Allow once",
+     "Always (session)",
+     "Always (project)",
+     "Always (user)",
+     "Cancel deny",
+     "Deny without feedback",
+     "Deny with feedback"
+    ],
+    "denyPanel": true,
+    "input": null
+   }
+  }
+ ],
+ "elicitationCard": [
+  {
+   "name": "empty-form",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "form"
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "linear needs some information",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": false,
+    "submit": "Accept",
+    "open": null,
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "form",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "Fill it in.\nTwo lines.",
+    "mode": "form",
+    "description": "From Linear",
+    "requestedSchema": {
+     "type": "object",
+     "properties": {
+      "title": {
+       "type": "string",
+       "title": "Title",
+       "description": "Short",
+       "minLength": 3,
+       "maxLength": 8,
+       "default": ""
+      },
+      "email": {
+       "type": "string",
+       "format": "email"
+      },
+      "when": {
+       "type": "string",
+       "format": "date-time",
+       "default": "2026-01-01T00:00:00Z"
+      },
+      "count": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 13,
+       "default": 3
+      },
+      "ratio": {
+       "type": "number",
+       "minimum": -1.5,
+       "maximum": 1e+21,
+       "default": 0.1
+      },
+      "big": {
+       "type": "number",
+       "default": 1e+21
+      },
+      "negz": {
+       "type": "number",
+       "default": 0
+      },
+      "notify": {
+       "type": "boolean",
+       "default": true
+      },
+      "off": {
+       "type": "boolean",
+       "default": "yes"
+      }
+     },
+     "required": [
+      "title",
+      "count",
+      7,
+      null
+     ]
+    }
+   },
+   "queueTotal": 2,
+   "state": null,
+   "out": {
+    "heading": "linear needs some information",
+    "server": "linear",
+    "queue": "1 of 2",
+    "description": "From Linear",
+    "message": "Fill it in.\nTwo lines.",
+    "host": null,
+    "href": null,
+    "unsafe": false,
+    "submit": "Submit",
+    "open": null,
+    "done": false,
+    "fields": [
+     {
+      "label": "Title*",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-title",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": "Short",
+      "error": null
+     },
+     {
+      "label": "email",
+      "control": "input",
+      "type": "email",
+      "testid": "mcp-elicitation-field-email",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "when",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-when",
+      "value": "2026-01-01T00:00:00Z",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "count*",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-count",
+      "value": "3",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "ratio",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-ratio",
+      "value": "0.1",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "big",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-big",
+      "value": "1e+21",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "negz",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-negz",
+      "value": "0",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "notify",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       true
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "off",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "enums",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "form",
+    "displayName": "Linear",
+    "requestedSchema": {
+     "properties": {
+      "pri": {
+       "type": "string",
+       "enum": [
+        "low",
+        2,
+        "high",
+        " pad "
+       ],
+       "enumNames": [
+        "Low",
+        "Two",
+        ""
+       ]
+      },
+      "one": {
+       "oneOf": [
+        {
+         "const": "a",
+         "title": "A"
+        },
+        {
+         "const": 1
+        },
+        "x",
+        {
+         "const": "b",
+         "title": ""
+        }
+       ],
+       "default": "b"
+      },
+      "any": {
+       "anyOf": [
+        {
+         "const": "z"
+        }
+       ],
+       "default": ""
+      },
+      "both": {
+       "enum": [],
+       "oneOf": [
+        {
+         "const": "q"
+        }
+       ],
+       "type": "string"
+      },
+      "empty": {
+       "oneOf": [
+        {
+         "const": 3
+        }
+       ],
+       "type": "boolean"
+      },
+      "tags": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "bug",
+         "ui",
+         "port"
+        ]
+       },
+       "minItems": 2,
+       "maxItems": 2,
+       "default": [
+        "ui",
+        4,
+        "nope"
+       ]
+      },
+      "alt": {
+       "type": "array",
+       "title": "Alt",
+       "items": {
+        "anyOf": [
+         {
+          "const": "x",
+          "title": "Ex"
+         }
+        ]
+       }
+      },
+      "bad": {
+       "type": "array",
+       "items": {
+        "enum": []
+       }
+      },
+      "noitems": {
+       "type": "array"
+      }
+     },
+     "required": [
+      "pri",
+      "tags",
+      "alt"
+     ]
+    }
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "Linear needs some information",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": false,
+    "submit": "Submit",
+    "open": null,
+    "done": false,
+    "fields": [
+     {
+      "label": "pri*",
+      "control": "select",
+      "type": null,
+      "testid": null,
+      "value": "",
+      "checked": [],
+      "options": [
+       "Choose\u2026",
+       "Low",
+       "",
+       " pad "
+      ],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "one",
+      "control": "select",
+      "type": null,
+      "testid": null,
+      "value": "b",
+      "checked": [],
+      "options": [
+       "Choose\u2026",
+       "A",
+       "b"
+      ],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "any",
+      "control": "select",
+      "type": null,
+      "testid": null,
+      "value": "",
+      "checked": [],
+      "options": [
+       "Choose\u2026",
+       "z"
+      ],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "both",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-both",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "empty",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "tags*",
+      "control": "multi",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false,
+       true,
+       false
+      ],
+      "options": [
+       "bug",
+       "ui",
+       "port"
+      ],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "Alt*",
+      "control": "multi",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false
+      ],
+      "options": [
+       "Ex"
+      ],
+      "help": null,
+      "error": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "titled",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "form",
+    "title": "Confirm",
+    "displayName": null,
+    "requestedSchema": {
+     "properties": {
+      "2": {
+       "type": "boolean"
+      },
+      "10": {
+       "type": "string"
+      },
+      "__proto__": {
+       "type": "string"
+      },
+      "b": {
+       "type": "string"
+      },
+      "01": {
+       "type": "string"
+      },
+      "constructor": {
+       "type": "string"
+      },
+      "prototype": {
+       "type": "string"
+      },
+      "obj": {
+       "type": "object"
+      },
+      "str": "string",
+      "list": [
+       {
+        "type": "string"
+       }
+      ],
+      "nul": null,
+      "none": {
+       "title": "No type"
+      }
+     },
+     "required": [
+      "b",
+      "10"
+     ]
+    }
+   },
+   "queueTotal": 1,
+   "state": null,
+   "out": {
+    "heading": "Confirm",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": false,
+    "submit": "Submit",
+    "open": null,
+    "done": false,
+    "fields": [
+     {
+      "label": "2",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "10*",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-10",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "b*",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-b",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "01",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-01",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "url",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "Sign in",
+    "mode": "url",
+    "url": "https://github.com/login?x=1"
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "linear wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": "Sign in",
+    "host": "github.com",
+    "href": "https://github.com/login?x=1",
+    "unsafe": false,
+    "submit": null,
+    "open": {
+     "disabled": false
+    },
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "url-id",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "url",
+    "url": "http://auth.test:8080/a",
+    "elicitationId": "el-1",
+    "displayName": "GitHub"
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "GitHub wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": "auth.test:8080",
+    "href": "http://auth.test:8080/a",
+    "unsafe": false,
+    "submit": null,
+    "open": {
+     "disabled": false
+    },
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "url-unsafe",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "url",
+    "url": "javascript:alert(1)"
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "linear wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": true,
+    "submit": null,
+    "open": {
+     "disabled": true
+    },
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "url-none",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "url"
+   },
+   "queueTotal": null,
+   "state": null,
+   "out": {
+    "heading": "linear wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": true,
+    "submit": null,
+    "open": {
+     "disabled": true
+    },
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "url-opened",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "url",
+    "url": "https://x.test/"
+   },
+   "queueTotal": null,
+   "state": {
+    "2": true
+   },
+   "out": {
+    "heading": "linear wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": "x.test",
+    "href": "https://x.test/",
+    "unsafe": false,
+    "submit": null,
+    "open": null,
+    "done": true,
+    "fields": []
+   }
+  },
+  {
+   "name": "url-opened-id",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "url",
+    "url": "https://x.test/",
+    "elicitationId": "e"
+   },
+   "queueTotal": null,
+   "state": {
+    "2": true
+   },
+   "out": {
+    "heading": "linear wants you to open a link",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": "x.test",
+    "href": "https://x.test/",
+    "unsafe": false,
+    "submit": null,
+    "open": {
+     "disabled": false
+    },
+    "done": false,
+    "fields": []
+   }
+  },
+  {
+   "name": "errors",
+   "request": {
+    "type": "mcp_elicitation_request",
+    "requestId": "e1",
+    "serverName": "linear",
+    "message": "",
+    "mode": "form",
+    "requestedSchema": {
+     "type": "object",
+     "properties": {
+      "title": {
+       "type": "string",
+       "title": "Title",
+       "description": "Short",
+       "minLength": 3,
+       "maxLength": 8,
+       "default": ""
+      },
+      "email": {
+       "type": "string",
+       "format": "email"
+      },
+      "when": {
+       "type": "string",
+       "format": "date-time",
+       "default": "2026-01-01T00:00:00Z"
+      },
+      "count": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 13,
+       "default": 3
+      },
+      "ratio": {
+       "type": "number",
+       "minimum": -1.5,
+       "maximum": 1e+21,
+       "default": 0.1
+      },
+      "big": {
+       "type": "number",
+       "default": 1e+21
+      },
+      "negz": {
+       "type": "number",
+       "default": 0
+      },
+      "notify": {
+       "type": "boolean",
+       "default": true
+      },
+      "off": {
+       "type": "boolean",
+       "default": "yes"
+      }
+     },
+     "required": [
+      "title",
+      "count",
+      7,
+      null
+     ]
+    }
+   },
+   "queueTotal": null,
+   "state": {
+    "1": {
+     "title": "Required",
+     "count": "Must be at least 1"
+    }
+   },
+   "out": {
+    "heading": "linear needs some information",
+    "server": "linear",
+    "queue": null,
+    "description": null,
+    "message": null,
+    "host": null,
+    "href": null,
+    "unsafe": false,
+    "submit": "Submit",
+    "open": null,
+    "done": false,
+    "fields": [
+     {
+      "label": "Title*",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-title",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": "Short",
+      "error": "Required"
+     },
+     {
+      "label": "email",
+      "control": "input",
+      "type": "email",
+      "testid": "mcp-elicitation-field-email",
+      "value": "",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "when",
+      "control": "input",
+      "type": "text",
+      "testid": "mcp-elicitation-field-when",
+      "value": "2026-01-01T00:00:00Z",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "count*",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-count",
+      "value": "3",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": "Must be at least 1"
+     },
+     {
+      "label": "ratio",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-ratio",
+      "value": "0.1",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "big",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-big",
+      "value": "1e+21",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "negz",
+      "control": "input",
+      "type": "number",
+      "testid": "mcp-elicitation-field-negz",
+      "value": "0",
+      "checked": [],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "notify",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       true
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     },
+     {
+      "label": "off",
+      "control": "checkbox",
+      "type": null,
+      "testid": null,
+      "value": null,
+      "checked": [
+       false
+      ],
+      "options": [],
+      "help": null,
+      "error": null
+     }
+    ]
+   }
+  }
+ ],
+ "askCard": [
+  {
+   "name": "inline-fresh",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": true,
+   "sessionLabel": "Port the prompts",
+   "minimize": false,
+   "state": null,
+   "out": {
+    "waiting": true,
+    "session": "Port the prompts",
+    "position": "1 of 2",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": false
+     },
+     {
+      "text": "Q2",
+      "ready": false
+     }
+    ],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": false
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "Pick an option to answer",
+    "prev": null,
+    "next": {
+     "disabled": true
+    },
+    "submit": null,
+    "minimize": false
+   }
+  },
+  {
+   "name": "modal-fresh",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": false,
+   "sessionLabel": "  ",
+   "minimize": true,
+   "state": null,
+   "out": {
+    "waiting": false,
+    "session": null,
+    "position": "1 of 2",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": false
+     },
+     {
+      "text": "Q2",
+      "ready": false
+     }
+    ],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": false
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "\u2191/\u2193 navigate \u00b7 1\u20134 select \u00b7 Enter next \u00b7 Esc hide",
+    "prev": null,
+    "next": {
+     "disabled": true
+    },
+    "submit": null,
+    "minimize": true
+   }
+  },
+  {
+   "name": "modal-no-minimize",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": false,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": null,
+   "out": {
+    "waiting": false,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": false
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "\u2191/\u2193 navigate \u00b7 1\u20134 select \u00b7 Enter submit \u00b7 Esc cancel",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "inline-one-ready",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [
+       "SQLite"
+      ],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 0,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 2",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": true
+     },
+     {
+      "text": "Q2",
+      "ready": false
+     }
+    ],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": false
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": true
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "Pick the remaining answers",
+    "prev": null,
+    "next": {
+     "disabled": false
+    },
+    "submit": null,
+    "minimize": false
+   }
+  },
+  {
+   "name": "inline-q2-multi",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 1,
+    "1": [
+     {
+      "selectedLabels": [
+       "SQLite"
+      ],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [
+       "Auth",
+       "Billing"
+      ],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 0,
+    "4": 1
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "2 of 2",
+    "multiBadge": true,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": true
+     },
+     {
+      "text": "Q2",
+      "ready": true
+     }
+    ],
+    "header": null,
+    "question": "Which features?",
+    "multiHint": "Select one or more\u00b7 2 selected",
+    "options": [
+     {
+      "text": "Auth1",
+      "selected": true
+     },
+     {
+      "text": "Search2",
+      "selected": false
+     },
+     {
+      "text": "Billing3",
+      "selected": true
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "Ready \u2014 press Submit",
+    "prev": {
+     "disabled": false
+    },
+    "next": null,
+    "submit": {
+     "disabled": false
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "modal-q2-other",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": false,
+   "sessionLabel": null,
+   "minimize": true,
+   "state": {
+    "0": 1,
+    "1": [
+     {
+      "selectedLabels": [
+       "SQLite"
+      ],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [
+       "Auth"
+      ],
+      "custom": "x",
+      "showOther": true
+     }
+    ],
+    "2": 0,
+    "4": 1
+   },
+   "out": {
+    "waiting": false,
+    "session": null,
+    "position": "2 of 2",
+    "multiBadge": true,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": true
+     },
+     {
+      "text": "Q2",
+      "ready": true
+     }
+    ],
+    "header": null,
+    "question": "Which features?",
+    "multiHint": "Select one or more\u00b7 1 selected",
+    "options": [
+     {
+      "text": "Auth1",
+      "selected": true
+     },
+     {
+      "text": "Search2",
+      "selected": false
+     },
+     {
+      "text": "Billing3",
+      "selected": false
+     }
+    ],
+    "otherInline": true,
+    "otherPane": true,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "\u2191/\u2193 navigate \u00b7 1\u20134 toggle \u00b7 \u2318/Ctrl+Enter submit \u00b7 Esc hide",
+    "prev": {
+     "disabled": false
+    },
+    "next": null,
+    "submit": {
+     "disabled": false
+    },
+    "minimize": true
+   }
+  },
+  {
+   "name": "inline-other-empty",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [],
+      "custom": "  ",
+      "showOther": true
+     },
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 0,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 2",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": false
+     },
+     {
+      "text": "Q2",
+      "ready": false
+     }
+    ],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": false
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": false
+     }
+    ],
+    "otherInline": true,
+    "otherPane": true,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "\u2318/Ctrl+Enter next",
+    "prev": null,
+    "next": {
+     "disabled": true
+    },
+    "submit": null,
+    "minimize": false
+   }
+  },
+  {
+   "name": "inline-all-ready-first",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [
+       "Postgres"
+      ],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [],
+      "custom": "mine",
+      "showOther": true
+     }
+    ],
+    "2": 0,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 2",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": true
+     },
+     {
+      "text": "Q2",
+      "ready": true
+     }
+    ],
+    "header": "DB",
+    "question": "Which DB?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "PostgresServer1",
+      "selected": true
+     },
+     {
+      "text": "SQLiteOne file2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": null,
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "Ready \u2014 press Next",
+    "prev": null,
+    "next": {
+     "disabled": false
+    },
+    "submit": null,
+    "minimize": false
+   }
+  },
+  {
+   "name": "preview-focused",
+   "questions": [
+    {
+     "question": "Which layout?",
+     "header": "Layout",
+     "options": [
+      {
+       "label": "Grid",
+       "description": "",
+       "preview": "<div class=\"g\">grid</div>"
+      },
+      {
+       "label": "List",
+       "description": "",
+       "preview": "+--+\n|  |\n+--+"
+      },
+      {
+       "label": "None",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 0,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": "Layout",
+    "question": "Which layout?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "Grid1",
+      "selected": false
+     },
+     {
+      "text": "List2",
+      "selected": false
+     },
+     {
+      "text": "None3",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 Grid",
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": true,
+    "hint": "Pick an option to answer",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "preview-text",
+   "questions": [
+    {
+     "question": "Which layout?",
+     "header": "Layout",
+     "options": [
+      {
+       "label": "Grid",
+       "description": "",
+       "preview": "<div class=\"g\">grid</div>"
+      },
+      {
+       "label": "List",
+       "description": "",
+       "preview": "+--+\n|  |\n+--+"
+      },
+      {
+       "label": "None",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [
+       "List"
+      ],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 1,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": "Layout",
+    "question": "Which layout?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "Grid1",
+      "selected": false
+     },
+     {
+      "text": "List2",
+      "selected": true
+     },
+     {
+      "text": "None3",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 List",
+    "previewNone": false,
+    "previewText": "+--+\n|  |\n+--+",
+    "previewHtml": false,
+    "hint": "Ready \u2014 press Submit",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": false
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "preview-missing",
+   "questions": [
+    {
+     "question": "Which layout?",
+     "header": "Layout",
+     "options": [
+      {
+       "label": "Grid",
+       "description": "",
+       "preview": "<div class=\"g\">grid</div>"
+      },
+      {
+       "label": "List",
+       "description": "",
+       "preview": "+--+\n|  |\n+--+"
+      },
+      {
+       "label": "None",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": false,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 2,
+    "4": 0
+   },
+   "out": {
+    "waiting": false,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": "Layout",
+    "question": "Which layout?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "Grid1",
+      "selected": false
+     },
+     {
+      "text": "List2",
+      "selected": false
+     },
+     {
+      "text": "None3",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 None",
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": true,
+    "hint": "\u2191/\u2193 navigate \u00b7 1\u20134 select \u00b7 Enter submit \u00b7 Esc cancel",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "preview-first-only",
+   "questions": [
+    {
+     "question": "First preview?",
+     "header": "",
+     "options": [
+      {
+       "label": "A",
+       "description": "",
+       "preview": "<b>A</b>"
+      },
+      {
+       "label": "B",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 1,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": null,
+    "question": "First preview?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "A1",
+      "selected": false
+     },
+     {
+      "text": "B2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 B",
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": true,
+    "hint": "Pick an option to answer",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "preview-empty-focused",
+   "questions": [
+    {
+     "question": "Empty?",
+     "header": "",
+     "options": [
+      {
+       "label": "A",
+       "description": "",
+       "preview": "<b>A</b>"
+      },
+      {
+       "label": "B",
+       "description": "",
+       "preview": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": true,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 0,
+    "1": [
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 1,
+    "4": 0
+   },
+   "out": {
+    "waiting": true,
+    "session": null,
+    "position": "1 of 1",
+    "multiBadge": false,
+    "chips": [],
+    "header": null,
+    "question": "Empty?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "A1",
+      "selected": false
+     },
+     {
+      "text": "B2",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 B",
+    "previewNone": true,
+    "previewText": null,
+    "previewHtml": false,
+    "hint": "Pick an option to answer",
+    "prev": null,
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  },
+  {
+   "name": "three-chips",
+   "questions": [
+    {
+     "question": "Which DB?",
+     "header": "DB",
+     "options": [
+      {
+       "label": "Postgres",
+       "description": "Server"
+      },
+      {
+       "label": "SQLite",
+       "description": "One file"
+      }
+     ],
+     "multiSelect": false
+    },
+    {
+     "question": "Which features?",
+     "header": "",
+     "options": [
+      {
+       "label": "Auth",
+       "description": ""
+      },
+      {
+       "label": "Search",
+       "description": ""
+      },
+      {
+       "label": "Billing",
+       "description": ""
+      }
+     ],
+     "multiSelect": true
+    },
+    {
+     "question": "Which layout?",
+     "header": "Layout",
+     "options": [
+      {
+       "label": "Grid",
+       "description": "",
+       "preview": "<div class=\"g\">grid</div>"
+      },
+      {
+       "label": "List",
+       "description": "",
+       "preview": "+--+\n|  |\n+--+"
+      },
+      {
+       "label": "None",
+       "description": ""
+      }
+     ],
+     "multiSelect": false
+    }
+   ],
+   "inline": false,
+   "sessionLabel": null,
+   "minimize": false,
+   "state": {
+    "0": 2,
+    "1": [
+     {
+      "selectedLabels": [
+       "Postgres"
+      ],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     },
+     {
+      "selectedLabels": [],
+      "custom": "",
+      "showOther": false
+     }
+    ],
+    "2": 0,
+    "4": 2
+   },
+   "out": {
+    "waiting": false,
+    "session": null,
+    "position": "3 of 3",
+    "multiBadge": false,
+    "chips": [
+     {
+      "text": "DB",
+      "ready": true
+     },
+     {
+      "text": "Q2",
+      "ready": false
+     },
+     {
+      "text": "Layout",
+      "ready": false
+     }
+    ],
+    "header": "Layout",
+    "question": "Which layout?",
+    "multiHint": null,
+    "options": [
+     {
+      "text": "Grid1",
+      "selected": false
+     },
+     {
+      "text": "List2",
+      "selected": false
+     },
+     {
+      "text": "None3",
+      "selected": false
+     }
+    ],
+    "otherInline": false,
+    "otherPane": false,
+    "previewLabel": "Preview \u00b7 Grid",
+    "previewNone": false,
+    "previewText": null,
+    "previewHtml": true,
+    "hint": "\u2191/\u2193 navigate \u00b7 1\u20134 select \u00b7 Enter submit \u00b7 Esc cancel",
+    "prev": {
+     "disabled": false
+    },
+    "next": null,
+    "submit": {
+     "disabled": true
+    },
+    "minimize": false
+   }
+  }
+ ]
+}

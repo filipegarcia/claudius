@@ -23,6 +23,8 @@ claudius-core.workspace = true
 # The chat route's composer (U07).
 claudius-composer.workspace = true
 claudius-gpui-theme.workspace = true
+# The prompt cards (U08a) and their `PromptSource`.
+claudius-prompts.workspace = true
 claudius-server.workspace = true
 claudius-theme.workspace = true
 claudius-transport.workspace = true

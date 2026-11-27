@@ -1076,6 +1076,7 @@ dependencies = [
  "claudius-composer",
  "claudius-core",
  "claudius-gpui-theme",
+ "claudius-prompts",
  "claudius-server",
  "claudius-theme",
  "claudius-transport",
@@ -1190,6 +1191,25 @@ dependencies = [
  "gpui-pre",
  "gpui-pre-apple",
  "serde_json",
+]
+
+[[package]]
+name = "claudius-prompts"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "claudius-agent",
+ "claudius-client",
+ "claudius-core",
+ "claudius-gpui-theme",
+ "claudius-theme",
+ "futures",
+ "gpui-kit",
+ "gpui-pre",
+ "gpui-pre-apple",
+ "image",
+ "serde_json",
+ "url",
 ]
 
 [[package]]
