@@ -151,6 +151,17 @@ mod shots {
             )
         })?;
         draw(&mut cx, handle)?;
+        // The live app installs the Git and Files pages at startup (main.rs);
+        // without them those routes draw the placeholder card.
+        cx.update(|cx| {
+            shell.update(cx, |shell, cx| {
+                shell.set_git_data(Arc::new(claudius_git::fixture::FixtureGitData::demo()), cx);
+                shell.set_files_data(
+                    Arc::new(claudius_files::fixture::FixtureFilesData::builtin()),
+                    cx,
+                );
+            })
+        });
         cx.update(|cx| shell.update(cx, |shell, cx| (scene.setup)(shell, cx)));
         draw(&mut cx, handle)?;
         let image = cx.capture_screenshot(handle)?;
